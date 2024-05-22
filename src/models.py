@@ -1,37 +1,57 @@
 import os
 import sys
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Text
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import create_engine
 from eralchemy2 import render_er
+from datetime import datetime
 
 Base = declarative_base()
 
-class Person(Base):
-    __tablename__ = 'person'
-    # Here we define columns for the table person
-    # Notice that each column is also a normal Python instance attribute.
+class Usuario(Base):
+    __tablename__ = 'usuario'
     id = Column(Integer, primary_key=True)
-    name = Column(String(250), nullable=False)
+    username = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
+    nombre = Column(String)
+    apellido = Column(String)
+    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+    posts = relationship('Post', back_populates='usuario')
+    comentarios = relationship('Comentario', back_populates='usuario')
+    likes = relationship('Like', back_populates='usuario')
 
-class Address(Base):
-    __tablename__ = 'address'
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
+class Post(Base):
+    __tablename__ = 'post'
     id = Column(Integer, primary_key=True)
-    street_name = Column(String(250))
-    street_number = Column(String(250))
-    post_code = Column(String(250), nullable=False)
-    person_id = Column(Integer, ForeignKey('person.id'))
-    person = relationship(Person)
+    usuario_id = Column(Integer, ForeignKey('usuario.id'), nullable=False)
+    contenido = Column(Text)
+    imagen = Column(String)
+    usuario = relationship('Usuario', back_populates='posts')
+    comentarios = relationship('Comentario', back_populates='post')
+    likes = relationship('Like', back_populates='post')
 
-    def to_dict(self):
-        return {}
+class Comentario(Base):
+    __tablename__ = 'comentario'
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey('post.id'), nullable=False)
+    usuario_id = Column(Integer, ForeignKey('usuario.id'), nullable=False)
+    contenido = Column(Text, nullable=False)
+    post = relationship('Post', back_populates='comentarios')
+    usuario = relationship('Usuario', back_populates='comentarios')
+
+class Like(Base):
+    __tablename__ = 'like'
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey('post.id'), nullable=False)
+    usuario_id = Column(Integer, ForeignKey('usuario.id'), nullable=False)
+    post = relationship('Post', back_populates='likes')
+    usuario = relationship('Usuario', back_populates='likes')
 
 ## Draw from SQLAlchemy base
 try:
     result = render_er(Base, 'diagram.png')
     print("Success! Check the diagram.png file")
 except Exception as e:
-    print("There was a problem genering the diagram")
+    print("There was a problem generating the diagram")
     raise e
